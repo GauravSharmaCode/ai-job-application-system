@@ -1,0 +1,327 @@
+openapi: 3.0.3
+info:
+  title: Job Application System API
+  description: AI-Assisted Job Application System backend API
+  version: 1.0.0
+  contact:
+    name: Job Application System
+servers:
+  - url: http://localhost:3000
+    description: Development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Static token authentication
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: Static token authentication via header
+
+  schemas:
+    ApplicationStatus:
+      type: string
+      enum: [SAVED, APPLIED, IN_PROGRESS, IN_REVIEW, REJECTED, GHOSTED, SHORTLISTED]
+
+    Job:
+      type: object
+      properties:
+        id:
+          type: integer
+        platform:
+          type: string
+        url:
+          type: string
+        title:
+          type: string
+        company:
+          type: string
+        location:
+          type: string
+        experience:
+          type: string
+        description:
+          type: string
+        skills:
+          type: array
+          items:
+            type: string
+        jdSchema:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+
+    Application:
+      type: object
+      properties:
+        id:
+          type: integer
+        jobId:
+          type: integer
+        resumeId:
+          type: integer
+        userId:
+          type: integer
+        platform:
+          type: string
+        date:
+          type: string
+          format: date-time
+        notes:
+          type: string
+        status:
+          $ref: '#/components/schemas/ApplicationStatus'
+        createdAt:
+          type: string
+          format: date-time
+        job:
+          $ref: '#/components/schemas/Job'
+        resume:
+          type: object
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+        message:
+          type: string
+        meta:
+          type: object
+        read:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    Log:
+      type: object
+      properties:
+        id:
+          type: integer
+        level:
+          type: string
+        message:
+          type: string
+        context:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      description: Public health check endpoint
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  ts:
+                    type: string
+                    format: date-time
+
+  /api/scrape:
+    post:
+      summary: Scrape job posting
+      description: Scrapes a job page, interprets JD, and upserts Job in database
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+                  format: uri
+      responses:
+        '200':
+          description: Job scraped successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job:
+                    $ref: '#/components/schemas/Job'
+                  scraped:
+                    type: object
+                  jd:
+                    type: object
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/resume/tailor:
+    post:
+      summary: Tailor resume
+      description: Tailors a resume based on job description
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jd
+                - base
+              properties:
+                jd:
+                  type: object
+                base:
+                  type: object
+                  properties:
+                    summary:
+                      type: string
+                    skills:
+                      type: array
+                      items:
+                        type: string
+      responses:
+        '200':
+          description: Resume tailored successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tailored:
+                    type: object
+                    properties:
+                      summary:
+                        type: string
+                      skills:
+                        type: array
+                        items:
+                          type: string
+                      bullets:
+                        type: array
+                        items:
+                          type: string
+                      coverLetter:
+                        type: string
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/applications:
+    get:
+      summary: List applications
+      description: Returns all applications with related job and resume data
+      responses:
+        '200':
+          description: Applications retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  applications:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Application'
+
+    post:
+      summary: Create application
+      description: Creates a new application linked to an existing job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jobUrl
+                - platform
+              properties:
+                jobUrl:
+                  type: string
+                  format: uri
+                platform:
+                  type: string
+                resumeId:
+                  type: integer
+                notes:
+                  type: string
+                status:
+                  $ref: '#/components/schemas/ApplicationStatus'
+      responses:
+        '201':
+          description: Application created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/notifications:
+    get:
+      summary: List notifications
+      description: Returns the latest 100 notifications
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  notifications:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+
+  /api/admin/logs:
+    get:
+      summary: List logs
+      description: Returns the latest 200 system logs
+      responses:
+        '200':
+          description: Logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  logs:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Log'

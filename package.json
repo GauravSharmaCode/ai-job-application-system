@@ -1,0 +1,36 @@
+{
+  "name": "job-application-system",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "postinstall": "prisma generate || echo prisma generate skipped"
+  },
+  "dependencies": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "next": "15.4.6",
+    "@prisma/client": "^5",
+    "zod": "^3.23.8",
+    "@aws-sdk/client-s3": "^3",
+    "@google/generative-ai": "^0.18.0"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@tailwindcss/postcss": "^4",
+    "tailwindcss": "^4",
+    "eslint": "^9",
+    "eslint-config-next": "15.4.6",
+    "@eslint/eslintrc": "^3",
+    "prisma": "^5",
+    "playwright": "^1"
+  }
+}
